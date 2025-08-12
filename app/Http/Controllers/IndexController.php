@@ -30,6 +30,29 @@ class IndexController extends Controller
         return view('partials.aoe2_overlay', ['stats' => $stats]);
     }
 
+    public function getRating(string $player_id)
+    {
+        $data = Http::withHeaders([
+            "user-Agent" => "eduardr10-stats-script",
+        ])
+            ->get('https://data.aoe2companion.com/api/profiles/' . $player_id, [
+                'page' => 1
+            ]);
+
+        if (!$data->successful()) {
+            Log::error('Error al obtener el rating del jugador', ['player_id' => $player_id, 'status' => $data->status()]);
+            return null;
+        }
+
+        $profile = $data->json();
+        if (empty($profile) || !isset($profile['leaderboards'][0]['rating'])) {
+            Log::warning('Perfil no encontrado o sin rating', ['player_id' => $player_id]);
+            return null;
+        }
+
+        return $profile['leaderboards'][0]['rating'];
+    }
+
     public function getPlayerStats($request)
     {
         $playerId = $request->input('player_id');
@@ -56,7 +79,12 @@ class IndexController extends Controller
         }
 
         Log::info('Total de partidas obtenidas', ['count' => count($matches)]);
-        return $this->analyzeMatches($matches, $playerId, $playedCivNum, $opponentCivNum);
+        $stats = $this->analyzeMatches($matches, $playerId, $playedCivNum, $opponentCivNum);
+        $stats['total_wins'] = collect($matches)->where('won', true)->count();
+        $stats['win_percent'] = $stats['total'] ? round($stats['total_wins'] * 100 / $stats['total'], 2) : 0;
+        $stats['rating'] = $this->getRating($playerId);
+
+        return $stats;
     }
 
     private function resolveCivNumber($civOpt)
@@ -183,7 +211,7 @@ class IndexController extends Controller
             $matchId = $match['match_id'];
             Log::debug('Analizando partida', ['match_id' => $matchId]);
 
-            $maxRetries = 6;
+            $maxRetries = 8;
             $analysisSuccess = false;
 
             for ($i = 0; $i < $maxRetries; $i++) {
@@ -269,6 +297,7 @@ class IndexController extends Controller
             }
 
             // Procesar aperturas y tiempos de edad
+
             $players = $data['player'] ?? [];
             $uptimes = $data['uptimes'] ?? [];
             $strategy = $data['strategy'] ?? [];
@@ -277,7 +306,7 @@ class IndexController extends Controller
             $meIdx = null;
             $oppIdx = null;
             foreach ($players as $idx => $p) {
-                if (($p['profile_id'] ?? null) == $playerId) {
+                if (($p['relic_id'] ?? null) == $playerId) {
                     $meIdx = $idx;
                 } else {
                     $oppIdx = $idx;
@@ -320,7 +349,6 @@ class IndexController extends Controller
         // Calcular estadísticas agregadas
         $avg = fn($arr) => empty($arr) ? null : round(array_sum($arr) / count($arr));
 
-        $stats['win_percent'] = $stats['total'] ? round($stats['victories'] * 100 / $stats['total'], 2) : 0;
         $stats['best_map'] = $stats['win_maps'] ? array_search(max($stats['win_maps']), $stats['win_maps']) : null;
         $stats['most_used_opening'] = $stats['openings'] ? array_search(max($stats['openings']), $stats['openings']) : null;
 

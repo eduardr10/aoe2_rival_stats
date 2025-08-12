@@ -1,8 +1,9 @@
 {{-- resources/views/partials/aoe2_overlay.blade.php --}}
-@if(isset($stats['error']) || $stats['total'] == 0)
+@if (isset($stats['error']) || $stats['total'] == 0)
     <div style="display: none;"></div>
 @else
-    <div style="
+    <div
+        style="
                                                                         position: fixed;
                                                                         top: 50%;
                                                                         right: 0;
@@ -25,9 +26,10 @@
         {{-- Encabezado --}}
         <div
             style="display: flex; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #444; padding-bottom: 8px;">
-            <span style="font-size: 18px; font-weight: bold; color: #f0f0f0;">{{ $stats['player_name'] }}</span>
+            <span style="font-size: 18px; font-weight: bold; color: #f0f0f0;">{{ $stats['player_name'] }}</span><small
+                style="font-size: 12px; font-weight: light; color: #f0f0f0;">{{ ' (' . $stats['rating'] . ')' ?? '' }}</small>
             <span
-                style="margin-left: auto; background: {{ $stats['win_percent'] > 50 ? '#2e7d32' : '#c62828' }}; 
+                style="margin-left: auto; background: {{ $stats['win_percent'] >= 50 ? '#2e7d32' : '#c62828' }}; 
                                                                               color: white; padding: 2px 6px; border-radius: 10px; font-size: 12px;">
                 {{ $stats['win_percent'] }}% WR
             </span>
@@ -41,7 +43,7 @@
             </div>
             <div>
                 <div style="color: #aaa; font-size: 11px;">VICTORIAS</div>
-                <div style="font-weight: bold; color: #4caf50;">{{ $stats['victories'] }}</div>
+                <div style="font-weight: bold; color: #4caf50;">{{ $stats['total_wins'] }}</div>
             </div>
             <div>
                 <div style="color: #aaa; font-size: 11px;">MEJOR MAPA</div>
@@ -50,7 +52,7 @@
             <div>
                 <div style="color: #aaa; font-size: 11px;">APERTURA MÁS USADA</div>
                 <div style="font-weight: bold;">
-                    {{ $stats['most_used_opening'] ? str_replace('_', ' ', $stats['most_used_opening']) : '-' }}
+                    {{ $stats['most_used_opening'] ? ucfirst(str_replace('_', ' ', $stats['most_used_opening'])) : '-' }}
                 </div>
             </div>
         </div>
@@ -73,7 +75,7 @@
             </div>
 
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 3px 0;">
-                <span>CastilloS</span>
+                <span>Castillos</span>
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <span
                         style="font-weight: bold;">{{ app('App\Http\Controllers\IndexController')->formatHms($stats['avg_castle']) }}</span>
@@ -96,11 +98,11 @@
         {{-- Mapas --}}
         <div style="margin-bottom: 10px;">
             <div style="color: #aaa; font-size: 11px; margin-bottom: 5px;">RENDIMIENTO POR MAPA</div>
-            @foreach($stats['map_counts'] as $map => $count)
+            @foreach ($stats['map_counts'] as $map => $count)
                 @php
                     $wins = $stats['win_maps'][$map] ?? 0;
                     $losses = $stats['lose_maps'][$map] ?? 0;
-                    $winRate = ($count > 0) ? round(($wins / $count) * 100) : 0;
+                    $winRate = $count > 0 ? round(($wins / $count) * 100) : 0;
                 @endphp
                 <div
                     style="display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
@@ -117,10 +119,10 @@
         {{-- Aperturas del jugador --}}
         <div style="margin-bottom: 10px;">
             <div style="color: #aaa; font-size: 11px; margin-bottom: 5px;">APERTURAS</div>
-            @foreach($stats['openings'] as $opening => $count)
+            @foreach ($stats['openings'] as $opening => $count)
                 <div style="padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-weight: bold;">{{ str_replace('_', ' ', $opening) }}</span>
+                        <span style="font-weight: bold;">{{ ucfirst(str_replace('_', ' ', $opening)) }}</span>
                         <span style="font-size: 11px; color: #aaa;">{{ $count }}</span>
                     </div>
                 </div>
@@ -128,13 +130,13 @@
         </div>
 
         {{-- Aperturas rivales en derrotas --}}
-        @if(!empty($stats['lose_openings']))
+        @if (!empty($stats['lose_openings']))
             <div style="margin-bottom: 10px;">
                 <div style="color: #aaa; font-size: 11px; margin-bottom: 5px;">APERTURAS RIVALES EN DERROTAS</div>
-                @foreach($stats['lose_openings'] as $opening => $count)
+                @foreach ($stats['lose_openings'] as $opening => $count)
                     <div
                         style="display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
-                        <span>{{ str_replace('_', ' ', $opening) }}</span>
+                        <span>{{ ucfirst(str_replace('_', ' ', $opening)) }}</span>
                         <div style="display: flex; align-items: center; gap: 5px;">
                             <span style="font-size: 11px; color: #f44336;">{{ $count }}❌</span>
                         </div>
