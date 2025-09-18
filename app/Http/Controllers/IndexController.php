@@ -292,6 +292,7 @@ class IndexController extends Controller
                     $stats['skipped']++;
                     continue;
                 }
+                Log::info('analyzeMatches: análisis obtenido', ['match_id' => $matchId]);
             }
             $players = $data['players'] ?? [];
             $mePlayer = null;
