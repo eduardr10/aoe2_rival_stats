@@ -115,7 +115,7 @@ class IndexController extends Controller
             unset($match);
         } else {
             $page = 1;
-            $perPage = 10;
+            $perPage = 10 * $maxPages;
             $maxSearchPages = 10; // Máximo de páginas cuando se busca por civ específica
             while (true) {
                 // Condiciones de salida
