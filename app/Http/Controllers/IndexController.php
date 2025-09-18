@@ -27,7 +27,7 @@ class IndexController extends Controller
 
     public function getRating(string $player_id)
     {
-        $useCache = env('USE_ANALYSIS_API', true);
+        $useCache = env('USE_ANALYSIS_API', false);
 
         if ($useCache) {
             return 1250;
@@ -95,7 +95,7 @@ class IndexController extends Controller
      */
     private function fetchMatches(int $playerId, string $leaderboard, int $maxPages, ?string $playedCivName = null): array
     {
-        $useCache = env('USE_ANALYSIS_API', true);
+        $useCache = env('USE_ANALYSIS_API', false);
         $matches = [];
         $cachePath = base_path('storage/app/match_analysis');
         if (!is_dir($cachePath)) {
@@ -228,7 +228,7 @@ class IndexController extends Controller
 
     private function analyzeMatches(array $matches, int $playerId, ?int $playedCiv, ?int $opponentCiv): array
     {
-        $useCache = env('USE_ANALYSIS_API', true);
+        $useCache = env('USE_ANALYSIS_API', false);
         $marketSums = ['feudal' => ['buy' => [], 'sell' => []], 'castle' => ['buy' => [], 'sell' => []], 'imperial' => ['buy' => [], 'sell' => []]];
         $marketCounts = ['feudal' => ['buy' => [], 'sell' => []], 'castle' => ['buy' => [], 'sell' => []], 'imperial' => ['buy' => [], 'sell' => []]];
         $techTimesGlobal = ['feudal' => [], 'castle' => [], 'imperial' => []];
