@@ -42,5 +42,4 @@
         return socket;
     }
     const socket_match_started = create_socket("match-started");
-    }
 </script>
