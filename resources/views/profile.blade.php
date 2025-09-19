@@ -42,4 +42,5 @@
         return socket;
     }
     const socket_match_started = create_socket("match-started");
+    const socket_ongoing_matches = create_socket("ongoing-matches");
 </script>
