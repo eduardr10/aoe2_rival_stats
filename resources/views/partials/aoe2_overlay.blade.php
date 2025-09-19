@@ -4,23 +4,23 @@
 @else
     <div
         style="
-                                                                                                                                                position: fixed;
-                                                                                                                                                top: 50%;
-                                                                                                                                                right: 0;
-                                                                                                                                                transform: translateY(-50%);
-                                                                                                                                                width: 700px;
-                                                                                                                                                background: rgba(15, 15, 25, 0.95);
-                                                                                                                                                backdrop-filter: blur(6px);
-                                                                                                                                                color: #e5e5e5;
-                                                                                                                                                padding: 16px;
-                                                                                                                                                border-top-left-radius: 20px;
-                                                                                                                                                border-bottom-left-radius: 20px;
-                                                                                                                                                font-family: 'Segoe UI', Roboto, sans-serif;
-                                                                                                                                                box-shadow: -6px 0 20px rgba(0,0,0,0.85);
-                                                                                                                                                z-index: 9999;
-                                                                                                                                                font-size: 13px;
-                                                                                                                                                line-height: 1.35;
-                                                                                                                                            ">
+                                                                                                                                                    position: fixed;
+                                                                                                                                                    top: 50%;
+                                                                                                                                                    right: 0;
+                                                                                                                                                    transform: translateY(-50%);
+                                                                                                                                                    width: 700px;
+                                                                                                                                                    background: rgba(15, 15, 25, 0.95);
+                                                                                                                                                    backdrop-filter: blur(6px);
+                                                                                                                                                    color: #e5e5e5;
+                                                                                                                                                    padding: 16px;
+                                                                                                                                                    border-top-left-radius: 20px;
+                                                                                                                                                    border-bottom-left-radius: 20px;
+                                                                                                                                                    font-family: 'Segoe UI', Roboto, sans-serif;
+                                                                                                                                                    box-shadow: -6px 0 20px rgba(0,0,0,0.85);
+                                                                                                                                                    z-index: 9999;
+                                                                                                                                                    font-size: 13px;
+                                                                                                                                                    line-height: 1.35;
+                                                                                                                                                ">
 
         {{-- HEADER --}}
         <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
@@ -32,14 +32,14 @@
             {{-- WR Badge --}}
             <span
                 style="
-                                                                                                                                                        margin-left:auto;
-                                                                                                                                                        background: {{ ($stats['win_percent'] ?? 0) >= 50 ? '#2e7d32' : '#c62828' }};
-                                                                                                                                                        color: #fff;
-                                                                                                                                                        padding: 4px 10px;
-                                                                                                                                                        border-radius: 12px;
-                                                                                                                                                        font-size:14px;
-                                                                                                                                                        font-weight:700;
-                                                                                                                                                    ">
+                                                                                                                                                            margin-left:auto;
+                                                                                                                                                            background: {{ ($stats['win_percent'] ?? 0) >= 50 ? '#2e7d32' : '#c62828' }};
+                                                                                                                                                            color: #fff;
+                                                                                                                                                            padding: 4px 10px;
+                                                                                                                                                            border-radius: 12px;
+                                                                                                                                                            font-size:14px;
+                                                                                                                                                            font-weight:700;
+                                                                                                                                                        ">
                 {{ $stats['win_percent'] ?? 0 }}% WR
             </span>
         </div>
@@ -246,47 +246,54 @@
             <small style="color:#fff">https://aoe2companion.com</small>
         </div>
 @endif
-    {{-- Los dos scripts de WebSocket deberán trabajar de forma coordinada para detectar automáticamente cuando se abre
-    esta vista, si el jugador ya está activo o si inicia una partida. Para lanzar la petición al backend con lo
-    requerido para analizar la partida. --}}
-    {{-- WebSocket para detectar si el jugador está en partida (cada 15 segundos) --}}
-
-
     <script>
-        const socket = new WebSocket("wss://socket.aoe2companion.com/listen?handler=match-started&profile_ids=21565632");
+        // WebSocket para detectar inicio de partida
+        const socket_match_started = new WebSocket(
+            "wss://socket.aoe2companion.com/listen?handler=match-started&profile_ids=21565632"
+        );
 
-        socket.onopen = () => {
-            console.log("✅ Conectado al WebSocket");
+        socket_match_started.onopen = () => {
+            console.log("✅ Conectado a match-started");
         };
 
-        socket.onmessage = (event) => {
-            console.log("📩 Mensaje recibido:", event.data);
+        socket_match_started.onmessage = (event) => {
+            console.log("📩 [match-started] Mensaje recibido:", event.data);
+
+            // Aquí puedes lanzar petición a tu backend para analizar la partida
+            // fetch('/api/analizar', { method: 'POST', body: event.data });
         };
 
-        socket.onclose = (event) => {
-            console.log("❌ Conexión cerrada", event.code, event.reason);
+        socket_match_started.onclose = (event) => {
+            console.log("❌ Conexión cerrada match-started", event.code, event.reason);
         };
 
-        socket.onerror = (error) => {
-            console.error("⚠️ Error en WebSocket", error);
-        };
-    </script>
-    <script>
-        const socket = new WebSocket("wss://socket.aoe2companion.com/listen?handler=ongoing-matches&profile_ids=21565632");
-
-        socket.onopen = () => {
-            console.log("✅ Conectado al WebSocket");
+        socket_match_started.onerror = (error) => {
+            console.error("⚠️ Error en WebSocket match-started", error);
         };
 
-        socket.onmessage = (event) => {
-            console.log("📩 Mensaje recibido:", event.data);
+
+        // WebSocket para detectar si ya hay una partida en curso
+        const socket_ongoing_matches = new WebSocket(
+            "wss://socket.aoe2companion.com/listen?handler=ongoing-matches&profile_ids=21565632"
+        );
+
+        socket_ongoing_matches.onopen = () => {
+            console.log("✅ Conectado a ongoing-matches");
         };
 
-        socket.onclose = (event) => {
-            console.log("❌ Conexión cerrada", event.code, event.reason);
+        socket_ongoing_matches.onmessage = (event) => {
+            console.log("📩 [ongoing-matches] Mensaje recibido:", event.data);
+
+            // Si este WS devuelve que ya hay partida en curso,
+            // también lanzas la petición a tu backend
+            // fetch('/api/analizar', { method: 'POST', body: event.data });
         };
 
-        socket.onerror = (error) => {
-            console.error("⚠️ Error en WebSocket", error);
+        socket_ongoing_matches.onclose = (event) => {
+            console.log("❌ Conexión cerrada ongoing-matches", event.code, event.reason);
+        };
+
+        socket_ongoing_matches.onerror = (error) => {
+            console.error("⚠️ Error en WebSocket ongoing-matches", error);
         };
     </script>
