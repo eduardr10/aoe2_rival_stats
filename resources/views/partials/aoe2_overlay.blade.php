@@ -2,24 +2,25 @@
 @if (isset($stats['error']) || $stats['total'] == 0)
     <div style="display: none;"></div>
 @else
-    <div style="
-                                                                                                    position: fixed;
-                                                                                                    top: 50%;
-                                                                                                    right: 0;
-                                                                                                    transform: translateY(-50%);
-                                                                                                    width: 700px;
-                                                                                                    background: rgba(15, 15, 25, 0.95);
-                                                                                                    backdrop-filter: blur(6px);
-                                                                                                    color: #e5e5e5;
-                                                                                                    padding: 16px;
-                                                                                                    border-top-left-radius: 20px;
-                                                                                                    border-bottom-left-radius: 20px;
-                                                                                                    font-family: 'Segoe UI', Roboto, sans-serif;
-                                                                                                    box-shadow: -6px 0 20px rgba(0,0,0,0.85);
-                                                                                                    z-index: 9999;
-                                                                                                    font-size: 13px;
-                                                                                                    line-height: 1.35;
-                                                                                                ">
+    <div
+        style="
+                                                                                                                                                position: fixed;
+                                                                                                                                                top: 50%;
+                                                                                                                                                right: 0;
+                                                                                                                                                transform: translateY(-50%);
+                                                                                                                                                width: 700px;
+                                                                                                                                                background: rgba(15, 15, 25, 0.95);
+                                                                                                                                                backdrop-filter: blur(6px);
+                                                                                                                                                color: #e5e5e5;
+                                                                                                                                                padding: 16px;
+                                                                                                                                                border-top-left-radius: 20px;
+                                                                                                                                                border-bottom-left-radius: 20px;
+                                                                                                                                                font-family: 'Segoe UI', Roboto, sans-serif;
+                                                                                                                                                box-shadow: -6px 0 20px rgba(0,0,0,0.85);
+                                                                                                                                                z-index: 9999;
+                                                                                                                                                font-size: 13px;
+                                                                                                                                                line-height: 1.35;
+                                                                                                                                            ">
 
         {{-- HEADER --}}
         <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
@@ -29,15 +30,16 @@
             </div>
 
             {{-- WR Badge --}}
-            <span style="
-                                                                                                            margin-left:auto;
-                                                                                                            background: {{ ($stats['win_percent'] ?? 0) >= 50 ? '#2e7d32' : '#c62828' }};
-                                                                                                            color: #fff;
-                                                                                                            padding: 4px 10px;
-                                                                                                            border-radius: 12px;
-                                                                                                            font-size:14px;
-                                                                                                            font-weight:700;
-                                                                                                        ">
+            <span
+                style="
+                                                                                                                                                        margin-left:auto;
+                                                                                                                                                        background: {{ ($stats['win_percent'] ?? 0) >= 50 ? '#2e7d32' : '#c62828' }};
+                                                                                                                                                        color: #fff;
+                                                                                                                                                        padding: 4px 10px;
+                                                                                                                                                        border-radius: 12px;
+                                                                                                                                                        font-size:14px;
+                                                                                                                                                        font-weight:700;
+                                                                                                                                                    ">
                 {{ $stats['win_percent'] ?? 0 }}% WR
             </span>
         </div>
@@ -244,3 +246,47 @@
             <small style="color:#fff">https://aoe2companion.com</small>
         </div>
 @endif
+    {{-- Los dos scripts de WebSocket deberán trabajar de forma coordinada para detectar automáticamente cuando se abre
+    esta vista, si el jugador ya está activo o si inicia una partida. Para lanzar la petición al backend con lo
+    requerido para analizar la partida. --}}
+    {{-- WebSocket para detectar si el jugador está en partida (cada 15 segundos) --}}
+
+
+    <script>
+        const socket = new WebSocket("wss://socket.aoe2companion.com/listen?handler=match-started&profile_ids=21565632");
+
+        socket.onopen = () => {
+            console.log("✅ Conectado al WebSocket");
+        };
+
+        socket.onmessage = (event) => {
+            console.log("📩 Mensaje recibido:", event.data);
+        };
+
+        socket.onclose = (event) => {
+            console.log("❌ Conexión cerrada", event.code, event.reason);
+        };
+
+        socket.onerror = (error) => {
+            console.error("⚠️ Error en WebSocket", error);
+        };
+    </script>
+    <script>
+        const socket = new WebSocket("wss://socket.aoe2companion.com/listen?handler=ongoing-matches&profile_ids=21565632");
+
+        socket.onopen = () => {
+            console.log("✅ Conectado al WebSocket");
+        };
+
+        socket.onmessage = (event) => {
+            console.log("📩 Mensaje recibido:", event.data);
+        };
+
+        socket.onclose = (event) => {
+            console.log("❌ Conexión cerrada", event.code, event.reason);
+        };
+
+        socket.onerror = (error) => {
+            console.error("⚠️ Error en WebSocket", error);
+        };
+    </script>

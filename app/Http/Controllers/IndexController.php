@@ -67,6 +67,7 @@ class IndexController extends Controller
         $playedCivNum = $this->resolveCivNumber($playedCivName);
         $opponentCivNum = $this->resolveCivNumber($opponentCivOpt);
         $matches = $this->fetchMatches($playerId, $leaderboard, $per_page, $pages, $playedCivName, $opponentCivOpt);
+
         if (empty($matches)) {
             Log::warning('getPlayerStats: No se encontraron partidas con los criterios especificados', $data_main_player);
             return [
