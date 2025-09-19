@@ -3,23 +3,23 @@
     <div style="display: none;"></div>
 @else
     <div style="
-                                                        position: fixed;
-                                                        top: 50%;
-                                                        right: 0;
-                                                        transform: translateY(-50%);
-                                                        width: 700px;
-                                                        background: rgba(15, 15, 25, 0.95);
-                                                        backdrop-filter: blur(6px);
-                                                        color: #e5e5e5;
-                                                        padding: 16px;
-                                                        border-top-left-radius: 20px;
-                                                        border-bottom-left-radius: 20px;
-                                                        font-family: 'Segoe UI', Roboto, sans-serif;
-                                                        box-shadow: -6px 0 20px rgba(0,0,0,0.85);
-                                                        z-index: 9999;
-                                                        font-size: 13px;
-                                                        line-height: 1.35;
-                                                    ">
+                                                                                                    position: fixed;
+                                                                                                    top: 50%;
+                                                                                                    right: 0;
+                                                                                                    transform: translateY(-50%);
+                                                                                                    width: 700px;
+                                                                                                    background: rgba(15, 15, 25, 0.95);
+                                                                                                    backdrop-filter: blur(6px);
+                                                                                                    color: #e5e5e5;
+                                                                                                    padding: 16px;
+                                                                                                    border-top-left-radius: 20px;
+                                                                                                    border-bottom-left-radius: 20px;
+                                                                                                    font-family: 'Segoe UI', Roboto, sans-serif;
+                                                                                                    box-shadow: -6px 0 20px rgba(0,0,0,0.85);
+                                                                                                    z-index: 9999;
+                                                                                                    font-size: 13px;
+                                                                                                    line-height: 1.35;
+                                                                                                ">
 
         {{-- HEADER --}}
         <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
@@ -30,14 +30,14 @@
 
             {{-- WR Badge --}}
             <span style="
-                                                                margin-left:auto;
-                                                                background: {{ ($stats['win_percent'] ?? 0) >= 50 ? '#2e7d32' : '#c62828' }};
-                                                                color: #fff;
-                                                                padding: 4px 10px;
-                                                                border-radius: 12px;
-                                                                font-size:14px;
-                                                                font-weight:700;
-                                                            ">
+                                                                                                            margin-left:auto;
+                                                                                                            background: {{ ($stats['win_percent'] ?? 0) >= 50 ? '#2e7d32' : '#c62828' }};
+                                                                                                            color: #fff;
+                                                                                                            padding: 4px 10px;
+                                                                                                            border-radius: 12px;
+                                                                                                            font-size:14px;
+                                                                                                            font-weight:700;
+                                                                                                        ">
                 {{ $stats['win_percent'] ?? 0 }}% WR
             </span>
         </div>
@@ -182,15 +182,15 @@
         {{-- TECHS (ordenadas por tiempo) --}}
         <div>
             {{-- Promedio de tiempo para whellbarrow y hand cart --}}
-                @php
-                    $formatHms = function ($seconds) {
-                        if ($seconds === null || $seconds === '-')
-                            return '-';
-                        $m = floor($seconds / 60);
-                        $s = $seconds % 60;
-                        return sprintf("%d:%02d", $m, $s);
-                    };
-                @endphp
+            @php
+                $formatHms = function ($seconds) {
+                    if ($seconds === null || $seconds === '-')
+                        return '-';
+                    $m = floor($seconds / 60);
+                    $s = $seconds % 60;
+                    return sprintf("%d:%02d", $m, $s);
+                };
+            @endphp
 
             <div style="font-size:11px; color:#aaa; margin-bottom:6px;">ECONOMÍA</div>
             <div style="display:flex; gap:12px; align-items:center; margin-bottom:10px;">
@@ -237,6 +237,10 @@
                     </div>
                 @endforeach
             </div>
-
+        </div>
+        {{-- Hay que añadir algo que indique que esto está realizado gracias a los recursos de la app de aoe2companion,
+        usando los estilos para que se vea muy bien--}}
+        <div style="font-size:11px; color:#aaa; margin-top:12px;">Datos obtenidos de la app AoE2 Companion
+            <small style="color:#fff">https://aoe2companion.com</small>
         </div>
 @endif

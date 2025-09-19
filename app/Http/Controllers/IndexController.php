@@ -19,6 +19,7 @@ class IndexController extends Controller
             'opponent_civ' => $request->input('opponent_civ'),
             'leaderboard' => $request->input('leaderboard', 'rm_1v1'),
             'pages' => $request->input('pages', 1),
+            'per_page' => $request->input('per_page', 10),
         ]);
         $data = $request->all();
         $stats = $this->getPlayerStats($data);
@@ -27,7 +28,7 @@ class IndexController extends Controller
 
     public function getRating(string $player_id)
     {
-        $useCache = env('USE_ANALYSIS_API', false);
+        $useCache = env('USE_CACHE_FILES', true);
 
         if ($useCache) {
             return 1250;
@@ -61,10 +62,11 @@ class IndexController extends Controller
         $playedCivName = $playedCivName ? Str::lower(trim($playedCivName)) : null;
         $opponentCivOpt = $data_main_player['opponent_civ'];
         $leaderboard = $data_main_player['leaderboard'];
-        $maxPages = intval($data_main_player['pages']);
+        $per_page = intval($data_main_player['per_page']);
+        $pages = intval($data_main_player['pages']);
         $playedCivNum = $this->resolveCivNumber($playedCivName);
         $opponentCivNum = $this->resolveCivNumber($opponentCivOpt);
-        $matches = $this->fetchMatches($playerId, $leaderboard, $maxPages, $playedCivName);
+        $matches = $this->fetchMatches($playerId, $leaderboard, $per_page, $pages, $playedCivName, $opponentCivOpt);
         if (empty($matches)) {
             Log::warning('getPlayerStats: No se encontraron partidas con los criterios especificados', $data_main_player);
             return [
@@ -93,9 +95,9 @@ class IndexController extends Controller
     /**
      * Obtiene las partidas con metadatos desde la API Companion
      */
-    private function fetchMatches(int $playerId, string $leaderboard, int $maxPages, ?string $playedCivName = null): array
+    private function fetchMatches(int $playerId, string $leaderboard, int $per_page, int $pages, ?string $playedCivName = null, ?string $opponentCivOpt = null): array
     {
-        $useCache = env('USE_ANALYSIS_API', false);
+        $useCache = env('USE_CACHE_FILES', true);
         $matches = [];
         $cachePath = base_path('storage/app/match_analysis');
         if (!is_dir($cachePath)) {
@@ -115,28 +117,31 @@ class IndexController extends Controller
             unset($match);
         } else {
             $page = 1;
-            $perPage = 10 * $maxPages;
-            $maxSearchPages = 10; // Máximo de páginas cuando se busca por civ específica
+            $maxSearchPages = 10;
             while (true) {
-                // Condiciones de salida
-                if ($playedCivName === null && $page > $maxPages)
+                if ($playedCivName === null && $opponentCivOpt === null && $page > $pages) {
                     break;
-                if ($playedCivName !== null && $page > $maxSearchPages)
+                } else if ($page > $maxSearchPages) {
                     break;
+                }
+
                 try {
                     $response = Http::withHeaders([
                         "user-agent" => "eduardr10-stats-script",
-                    ])->get('https://data.aoe2companion.com/api/matches', [
-                                'direction' => 'forward',
-                                'profile_ids' => $playerId,
-                                'leaderboard_ids' => $leaderboard,
-                                'page' => $page,
-                                'per_page' => $perPage
-                            ]);
+                    ])
+                        ->get('https://data.aoe2companion.com/api/matches', [
+                            'direction' => 'forward',
+                            'profile_ids' => $playerId,
+                            'leaderboard_ids' => $leaderboard,
+                            'page' => $page,
+                            'per_page' => $per_page
+                        ]);
+
                     if (!$response->successful()) {
                         Log::error('fetchMatches: respuesta no exitosa', ['status' => $response->status()]);
                         break;
                     }
+
                     $payload = $response->json();
                     $pageMatches = $payload['matches'] ?? [];
                     $matchesFound = 0;
@@ -164,7 +169,7 @@ class IndexController extends Controller
                     }
                     // Salir si ya tenemos suficientes partidas (5) para civ específica
                     $enoughMatches = $playedCivName === null || count($matches) >= 5;
-                    $hasMorePages = count($pageMatches) === $perPage;
+                    $hasMorePages = count($pageMatches) === $per_page;
                     if (!$hasMorePages || $enoughMatches) {
                         break;
                     }
@@ -228,7 +233,7 @@ class IndexController extends Controller
 
     private function analyzeMatches(array $matches, int $playerId, ?int $playedCiv, ?int $opponentCiv): array
     {
-        $useCache = env('USE_ANALYSIS_API', false);
+        $useCache = env('USE_CACHE_FILES', true);
         $marketSums = ['feudal' => ['buy' => [], 'sell' => []], 'castle' => ['buy' => [], 'sell' => []], 'imperial' => ['buy' => [], 'sell' => []]];
         $marketCounts = ['feudal' => ['buy' => [], 'sell' => []], 'castle' => ['buy' => [], 'sell' => []], 'imperial' => ['buy' => [], 'sell' => []]];
         $techTimesGlobal = ['feudal' => [], 'castle' => [], 'imperial' => []];
