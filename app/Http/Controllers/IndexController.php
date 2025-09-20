@@ -37,6 +37,9 @@ class IndexController extends Controller
     }
     public function __invoke(Request $request, $player_id)
     {
+        if (!$request->ajax()) {
+            return $stats = ['total' => 0];
+        }
         set_time_limit(3000);
         $matchId = $request->query('matchId');
         // Si es AJAX y tiene matchId, devolver análisis JSON
@@ -56,6 +59,7 @@ class IndexController extends Controller
             $stats = $this->analyzeMatches([$match], $player_id, null, null);
             return response()->json($stats);
         }
+
         // Flujo normal: renderizar la vista
         $ongoing = $request->input('ongoing', false);
         $request->merge([
@@ -148,7 +152,7 @@ class IndexController extends Controller
     /**
      * Obtiene las partidas con metadatos desde la API Companion
      */
-    private function fetchMatches(int $playerId, string $leaderboard, int $per_page, int $pages, ?string $playedCivName = null, ?string $opponentCivOpt = null): array
+    private function fetchMatches($playerId, string $leaderboard, int $per_page, int $pages, ?string $playedCivName = null, ?string $opponentCivOpt = null): array
     {
         $useCache = env('USE_CACHE_FILES', false);
         $matches = [];

@@ -4,22 +4,22 @@
     <div style="display: none;"></div>
 @else
     <div style="position: fixed;
-                           top: 50%;
-                           right: 0;
-                           transform: translateY(-50%);
-                           width: 700px;
-                           background: rgba(15, 15, 25, 0.95);
-                           backdrop-filter: blur(6px);
-                           color: #e5e5e5;
-                           padding: 16px;
-                           border-top-left-radius: 20px;
-                           border-bottom-left-radius: 20px;
-                           font-family: 'Segoe UI', Roboto, sans-serif;
-                           box-shadow: -6px 0 20px rgba(0,0,0,0.85);
-                           z-index: 9999;
-                           font-size: 13px;
-                           line-height: 1.35;
-                        ">
+                               top: 50%;
+                               right: 0;
+                               transform: translateY(-50%);
+                               width: 700px;
+                               background: rgba(15, 15, 25, 0.95);
+                               backdrop-filter: blur(6px);
+                               color: #e5e5e5;
+                               padding: 16px;
+                               border-top-left-radius: 20px;
+                               border-bottom-left-radius: 20px;
+                               font-family: 'Segoe UI', Roboto, sans-serif;
+                               box-shadow: -6px 0 20px rgba(0,0,0,0.85);
+                               z-index: 9999;
+                               font-size: 13px;
+                               line-height: 1.35;
+                            ">
 
         {{-- HEADER --}}
         <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
@@ -30,14 +30,14 @@
 
             {{-- WR Badge --}}
             <span style="
-                                margin-left:auto;
-                                background: {{ ($stats['win_percent'] ?? 0) >= 50 ? '#2e7d32' : '#c62828' }};
-                                color: #fff;
-                                padding: 4px 10px;
-                                border-radius: 12px;
-                                font-size:14px;
-                                font-weight:700;
-                                ">
+                                    margin-left:auto;
+                                    background: {{ ($stats['win_percent'] ?? 0) >= 50 ? '#2e7d32' : '#c62828' }};
+                                    color: #fff;
+                                    padding: 4px 10px;
+                                    border-radius: 12px;
+                                    font-size:14px;
+                                    font-weight:700;
+                                    ">
                 {{ $stats['win_percent'] ?? 0 }}% WR
             </span>
         </div>
@@ -247,42 +247,42 @@
     <div>
     </div>
     <script>
+        // Get player_id from URL
         const url_params = new URLSearchParams(window.location.search);
         const player_id = url_params.get('player_id') ?? 8621659;
-        // WebSconsole.log("🎮 Jugador:", player_id);
 
-        // Función que crea un WebSocket y se reconecta si se cierra
+        // Track analyzed matchIds
         const analyzedMatches = new Set();
 
-        // Función que crea un WebSocket y se reconecta si se cierra
+        // Remove overlay on initial load (blank state)
+        document.addEventListener('DOMContentLoaded', () => {
+            const overlay = document.getElementById('overlay-analysis');
+            if (overlay) overlay.remove();
+        });
+
+        // Create and manage WebSocket
         function create_socket(handler_name) {
             const socket_url = `wss://socket.aoe2companion.com/listen?handler=${handler_name}&profile_ids=${player_id}`;
             let socket = new WebSocket(socket_url);
 
             socket.onopen = () => {
-                console.log(`✅ Conectado a ${handler_name}`);
+                console.log(`✅ Connected to ${handler_name}`);
             };
 
             socket.onmessage = async (event) => {
-                console.log(`📩 [${handler_name}] Mensaje recibido:`, event.data);
+                console.log(`📩 [${handler_name}] Message received:`, event.data);
                 let msg;
                 try {
                     msg = JSON.parse(event.data);
                 } catch (e) {
-                    console.warn('No se pudo parsear el mensaje:', event.data);
+                    console.warn('Could not parse message:', event.data);
                     return;
                 }
-                // Verifica si tiene matchId
-                if (!msg.matchId) {
-                    console.warn('Mensaje sin matchId:', msg);
-                    return;
-                }
-                if (analyzedMatches.has(msg.matchId)) {
-                    console.log('MatchId ya analizado:', msg.matchId);
+                // Only request analysis if matchId exists, not already requested, and leaderboard is rm_1v1
+                if (!msg.matchId || analyzedMatches.has(msg.matchId) || msg.leaderboard !== 'rm_1v1') {
                     return;
                 }
                 analyzedMatches.add(msg.matchId);
-                // Make request to backend for analysis
                 try {
                     const res = await fetch(`/${player_id}?matchId=${msg.matchId}`, {
                         method: 'GET',
@@ -300,32 +300,30 @@
             };
 
             socket.onclose = (event) => {
-                console.warn(`❌ Conexión cerrada en ${handler_name}, reintentando en 3s...`, event.code, event.reason);
+                console.warn(`❌ Connection closed in ${handler_name}, retrying in 3s...`, event.code, event.reason);
                 setTimeout(() => {
-                    socket = create_socket(handler_name); // reconectar
+                    socket = create_socket(handler_name);
                 }, 3000);
             };
 
             socket.onerror = (error) => {
-                console.error(`⚠️ Error en WebSocket ${handler_name}`, error);
+                console.error(`⚠️ WebSocket error ${handler_name}`, error);
                 socket.close();
             };
 
             return socket;
         }
 
-        // Función para mostrar el análisis en la vista
+        // Show analysis overlay
         function showAnalysis(analysis) {
-            const overlay = document.getElementById('overlay-analysis');
-            if (overlay) {
-                overlay.innerText = JSON.stringify(analysis, null, 2);
-            } else {
-                const div = document.createElement('div');
-                div.id = 'overlay-analysis';
-                div.style = 'background:#222; color:#fff; padding:12px; margin:12px; white-space:pre;';
-                div.innerText = JSON.stringify(analysis, null, 2);
-                document.body.appendChild(div);
+            let overlay = document.getElementById('overlay-analysis');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'overlay-analysis';
+                overlay.style = 'background:#222; color:#fff; padding:12px; margin:12px; white-space:pre;';
+                document.body.appendChild(overlay);
             }
+            overlay.innerText = JSON.stringify(analysis, null, 2);
         }
 
         // const socket_match_started = create_socket("match-started");
