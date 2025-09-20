@@ -1,26 +1,25 @@
 {{-- resources/views/partials/aoe2_overlay.blade.php --}}
 @if (isset($stats['error']) || $stats['total'] == 0)
+    <div>none</div>
     <div style="display: none;"></div>
 @else
-    <div
-        style="
-                                                                                                                                                                                position: fixed;
-                                                                                                                                                                                top: 50%;
-                                                                                                                                                                                right: 0;
-                                                                                                                                                                                transform: translateY(-50%);
-                                                                                                                                                                                width: 700px;
-                                                                                                                                                                                background: rgba(15, 15, 25, 0.95);
-                                                                                                                                                                                backdrop-filter: blur(6px);
-                                                                                                                                                                                color: #e5e5e5;
-                                                                                                                                                                                padding: 16px;
-                                                                                                                                                                                border-top-left-radius: 20px;
-                                                                                                                                                                                border-bottom-left-radius: 20px;
-                                                                                                                                                                                font-family: 'Segoe UI', Roboto, sans-serif;
-                                                                                                                                                                                box-shadow: -6px 0 20px rgba(0,0,0,0.85);
-                                                                                                                                                                                z-index: 9999;
-                                                                                                                                                                                font-size: 13px;
-                                                                                                                                                                                line-height: 1.35;
-                                                                                                                                                                            ">
+    <div style="position: fixed;
+                           top: 50%;
+                           right: 0;
+                           transform: translateY(-50%);
+                           width: 700px;
+                           background: rgba(15, 15, 25, 0.95);
+                           backdrop-filter: blur(6px);
+                           color: #e5e5e5;
+                           padding: 16px;
+                           border-top-left-radius: 20px;
+                           border-bottom-left-radius: 20px;
+                           font-family: 'Segoe UI', Roboto, sans-serif;
+                           box-shadow: -6px 0 20px rgba(0,0,0,0.85);
+                           z-index: 9999;
+                           font-size: 13px;
+                           line-height: 1.35;
+                        ">
 
         {{-- HEADER --}}
         <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
@@ -30,16 +29,15 @@
             </div>
 
             {{-- WR Badge --}}
-            <span
-                style="
-                                                                                                                                                                                        margin-left:auto;
-                                                                                                                                                                                        background: {{ ($stats['win_percent'] ?? 0) >= 50 ? '#2e7d32' : '#c62828' }};
-                                                                                                                                                                                        color: #fff;
-                                                                                                                                                                                        padding: 4px 10px;
-                                                                                                                                                                                        border-radius: 12px;
-                                                                                                                                                                                        font-size:14px;
-                                                                                                                                                                                        font-weight:700;
-                                                                                                                                                                                    ">
+            <span style="
+                                margin-left:auto;
+                                background: {{ ($stats['win_percent'] ?? 0) >= 50 ? '#2e7d32' : '#c62828' }};
+                                color: #fff;
+                                padding: 4px 10px;
+                                border-radius: 12px;
+                                font-size:14px;
+                                font-weight:700;
+                                ">
                 {{ $stats['win_percent'] ?? 0 }}% WR
             </span>
         </div>
@@ -246,10 +244,15 @@
             <small style="color:#fff">https://aoe2companion.com</small>
         </div>
 @endif
+    <div>
+    </div>
     <script>
         const url_params = new URLSearchParams(window.location.search);
         const player_id = url_params.get('player_id') ?? 8621659;
         // WebSconsole.log("🎮 Jugador:", player_id);
+
+        // Función que crea un WebSocket y se reconecta si se cierra
+        const analyzedMatches = new Set();
 
         // Función que crea un WebSocket y se reconecta si se cierra
         function create_socket(handler_name) {
@@ -260,17 +263,40 @@
                 console.log(`✅ Conectado a ${handler_name}`);
             };
 
-            socket.onmessage = (event) => {
+            socket.onmessage = async (event) => {
                 console.log(`📩 [${handler_name}] Mensaje recibido:`, event.data);
-
-                // Aquí lanzas al backend lo recibido
-                /*
-                fetch('/api/analizar', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: event.data
-                });
-                */
+                let msg;
+                try {
+                    msg = JSON.parse(event.data);
+                } catch (e) {
+                    console.warn('No se pudo parsear el mensaje:', event.data);
+                    return;
+                }
+                // Verifica si tiene matchId
+                if (!msg.matchId) {
+                    console.warn('Mensaje sin matchId:', msg);
+                    return;
+                }
+                if (analyzedMatches.has(msg.matchId)) {
+                    console.log('MatchId ya analizado:', msg.matchId);
+                    return;
+                }
+                analyzedMatches.add(msg.matchId);
+                // Make request to backend for analysis
+                try {
+                    const res = await fetch(`/${player_id}?matchId=${msg.matchId}`, {
+                        method: 'GET',
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    if (!res.ok) {
+                        console.error('Error analyzing match:', res.status);
+                        return;
+                    }
+                    const analysis = await res.json();
+                    showAnalysis(analysis);
+                } catch (err) {
+                    console.error('Error in fetch analysis:', err);
+                }
             };
 
             socket.onclose = (event) => {
@@ -287,6 +313,21 @@
 
             return socket;
         }
-        const socket_match_started = create_socket("match-started");
-    }
+
+        // Función para mostrar el análisis en la vista
+        function showAnalysis(analysis) {
+            const overlay = document.getElementById('overlay-analysis');
+            if (overlay) {
+                overlay.innerText = JSON.stringify(analysis, null, 2);
+            } else {
+                const div = document.createElement('div');
+                div.id = 'overlay-analysis';
+                div.style = 'background:#222; color:#fff; padding:12px; margin:12px; white-space:pre;';
+                div.innerText = JSON.stringify(analysis, null, 2);
+                document.body.appendChild(div);
+            }
+        }
+
+        // const socket_match_started = create_socket("match-started");
+        const socket_ongoing_matches = create_socket("ongoing-matches");
     </script>

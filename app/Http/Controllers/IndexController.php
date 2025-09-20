@@ -10,16 +10,62 @@ use Illuminate\Support\Str;
 
 class IndexController extends Controller
 {
-    public function __invoke(Request $request)
+    /**
+     * Endpoint to analyze a specific match by matchId
+     */
+    public function analyze(Request $request, $player_id = null): \Illuminate\Http\JsonResponse
+    {
+        $matchId = $request->query('matchId');
+        if (!$matchId) {
+            return response()->json(['error' => 'matchId requerido'], 400);
+        }
+        // Usar los métodos existentes para obtener el análisis
+        $data = [
+            'player_id' => $player_id,
+            'leaderboard' => $request->input('leaderboard', 'rm_1v1'),
+            'pages' => 1,
+            'per_page' => 1,
+        ];
+        // Buscar el match específico
+        $matches = $this->fetchMatches($player_id, $data['leaderboard'], 1, 1);
+        $match = collect($matches)->firstWhere('match_id', $matchId);
+        if (!$match) {
+            return response()->json(['error' => 'Match no encontrado'], 404);
+        }
+        $stats = $this->analyzeMatches([$match], $player_id, null, null);
+        return response()->json($stats);
+    }
+    public function __invoke(Request $request, $player_id)
     {
         set_time_limit(3000);
+        $matchId = $request->query('matchId');
+        // Si es AJAX y tiene matchId, devolver análisis JSON
+        if ($request->ajax() && $matchId) {
+            // Use analyze logic
+            $data = [
+                'player_id' => $player_id,
+                'leaderboard' => $request->input('leaderboard', 'rm_1v1'),
+                'pages' => 1,
+                'per_page' => 1,
+            ];
+            $matches = $this->fetchMatches($player_id, $data['leaderboard'], 1, 1);
+            $match = collect($matches)->firstWhere('match_id', $matchId);
+            if (!$match) {
+                return response()->json(['error' => 'Match no encontrado'], 404);
+            }
+            $stats = $this->analyzeMatches([$match], $player_id, null, null);
+            return response()->json($stats);
+        }
+        // Flujo normal: renderizar la vista
+        $ongoing = $request->input('ongoing', false);
         $request->merge([
-            'player_id' => $request->input('player_id', 8621659),
+            'player_id' => $player_id ?? 8621659,
             'played_civilization' => $request->input('played_civilization'),
             'opponent_civ' => $request->input('opponent_civ'),
             'leaderboard' => $request->input('leaderboard', 'rm_1v1'),
             'pages' => $request->input('pages', 1),
-            'per_page' => $request->input('per_page', 10),
+            'ongoing' => $ongoing,
+            'per_page' => $request->input('per_page', $ongoing ? 11 : 10),
         ]);
         $data = $request->all();
         $stats = $this->getPlayerStats($data);
@@ -75,6 +121,12 @@ class IndexController extends Controller
                 'total' => 0
             ];
         }
+        if ($data_main_player['ongoing']) {
+            $matches = array_filter($matches, function ($m) {
+                return $m['finished'] !== null;
+            });
+        }
+
         $stats = $this->analyzeMatches($matches, $playerId, $playedCivNum, $opponentCivNum);
         $stats['total_wins'] = collect($matches)->where('won', true)->count();
         $stats['win_percent'] = $stats['total'] ? round($stats['total_wins'] * 100 / $stats['total'], 2) : 0;
