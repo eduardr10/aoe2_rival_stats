@@ -38,7 +38,8 @@ class IndexController extends Controller
     public function __invoke(Request $request, $player_id)
     {
         if (!$request->ajax()) {
-            return $stats = ['total' => 0];
+            $stats = ['total' => 0];
+            return view('partials.aoe2_overlay', ['stats' => $stats]);
         }
         set_time_limit(3000);
         $matchId = $request->query('matchId');
