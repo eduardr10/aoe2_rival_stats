@@ -38,7 +38,8 @@ class IndexController extends Controller
     public function __invoke(Request $request, $player_id)
     {
         if (!$request->ajax()) {
-            $stats = ['total' => 0, 'player_id' => $player_id];
+            $matchId = $request->query('matchId');
+            $stats = ['total' => 0, 'player_id' => $player_id, 'match_id' => $matchId];
             return view('partials.aoe2_overlay', ['stats' => $stats]);
         }
         set_time_limit(3000);
@@ -58,6 +59,7 @@ class IndexController extends Controller
                 return response()->json(['error' => 'Match no encontrado'], 404);
             }
             $stats = $this->analyzeMatches([$match], $player_id, null, null);
+            $stats['match_id'] = $matchId;
             return response()->json($stats);
         }
 
