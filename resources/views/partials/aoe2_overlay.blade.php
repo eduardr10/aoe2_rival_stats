@@ -244,7 +244,7 @@
 
         // Usar siempre el player_id enviado desde backend
         const player_id = {{ $stats['player_id']}};
-        console.log('Using player_id:', player_id);
+        // console.log('Using player_id:', player_id);
 
         // Extraer el profile_id del rival desde los datos del match (ws.json)
         // Suponiendo que el match_data se obtiene vía WebSocket y está en match_data.players
@@ -279,7 +279,7 @@
             };
 
             socket.onmessage = async (event) => {
-                console.log(`📩 [${handler_name}] Message received:`, event.data);
+                // console.log(`📩 [${handler_name}] Message received:`, event.data);
                 let msg;
                 try {
                     msg = JSON.parse(event.data);
@@ -290,9 +290,20 @@
                 // Soportar array y objeto
                 let match_data = Array.isArray(msg) && msg.length > 0 ? msg[0].data : msg.data;
                 if (!match_data || !match_data.matchId || analyzed_match_ids.has(match_data.matchId) || match_data.leaderboardId !== 'rm_1v1') {
-                    console.log('Skipping analysis for match_id:', match_data ? match_data.matchId : undefined);
+                    // console.log('Skipping analysis for match_id:', match_data ? match_data.matchId : undefined);
                     return;
                 }
+
+                // --- LocalStorage: evitar análisis repetidos ---
+                const ls_key = `aoe2_analysis_${match_data.matchId}`;
+                const last_analysis = localStorage.getItem(ls_key);
+                const now = Date.now();
+                cons minutes = 2;
+                if (last_analysis && now - parseInt(last_analysis) < minutes * 60 * 1000) {
+                    // console.log(`⏳ Análisis para matchId ${match_data.matchId} ya realizado recientemente.`);
+                    return;
+                }
+                localStorage.setItem(ls_key, now.toString());
                 analyzed_match_ids.add(match_data.matchId);
 
                 // Extraer el profile_id del rival
