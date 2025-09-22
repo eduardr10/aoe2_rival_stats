@@ -1,26 +1,9 @@
 {{-- resources/views/partials/aoe2_overlay.blade.php --}}
 @if (isset($stats['error']) || $stats['total'] == 0)
-    <div>none</div>
     <div style="display: none;"></div>
 @else
     <div
-        style="position: fixed;
-                                                                                                                                               top: 50%;
-                                                                                                                                               right: 0;
-                                                                                                                                               transform: translateY(-50%);
-                                                                                                                                               width: 700px;
-                                                                                                                                               background: rgba(15, 15, 25, 0.95);
-                                                                                                                                               backdrop-filter: blur(6px);
-                                                                                                                                               color: #e5e5e5;
-                                                                                                                                               padding: 16px;
-                                                                                                                                               border-top-left-radius: 20px;
-                                                                                                                                               border-bottom-left-radius: 20px;
-                                                                                                                                               font-family: 'Segoe UI', Roboto, sans-serif;
-                                                                                                                                               box-shadow: -6px 0 20px rgba(0,0,0,0.85);
-                                                                                                                                               z-index: 9999;
-                                                                                                                                               font-size: 13px;
-                                                                                                                                               line-height: 1.35;
-                                                                                                                                            ">
+        style="position: fixed;top: 50%;right: 0;transform: translateY(-50%);width: 700px;background: rgba(15, 15, 25, 0.95);backdrop-filter: blur(6px);color: #e5e5e5;padding: 16px;border-top-left-radius: 20px;border-bottom-left-radius: 20px;font-family: 'Segoe UI', Roboto, sans-serif;box-shadow: -6px 0 20px rgba(0,0,0,0.85);z-index: 9999;font-size: 13px;line-height: 1.35;">
 
         {{-- MATCH ID --}}
         @if (!empty($stats['match_id']))
@@ -36,15 +19,7 @@
             </div>
             {{-- WR Badge --}}
             <span
-                style="
-                                                                                                                                margin-left:auto;
-                                                                                                                                background: {{ ($stats['win_percent'] ?? 0) >= 50 ? '#2e7d32' : '#c62828' }};
-                                                                                                                                color: #fff;
-                                                                                                                                padding: 4px 10px;
-                                                                                                                                border-radius: 12px;
-                                                                                                                                font-size:14px;
-                                                                                                                                font-weight:700;
-                                                                                                                                ">
+                style="margin-left:auto;background: {{ ($stats['win_percent'] ?? 0) >= 50 ? '#2e7d32' : '#c62828' }};color: #fff;padding: 4px 10px;border-radius: 12px;font-size:14px;font-weight:700;">
                 {{ $stats['win_percent'] ?? 0 }}% WR
             </span>
         </div>
@@ -269,6 +244,67 @@
         // Get player_id from backend
         const player_id = {{ $stats['player_id'] ?? 8621659 }};
         console.log('Using player_id:', player_id);
+
+        // Extraer el profileId del rival desde los datos del match (ws.json)
+        // Suponiendo que el match data se obtiene vía WebSocket y está en matchData.players
+        function getRivalProfileId(matchData, myProfileId) {
+            if (!matchData || !Array.isArray(matchData.players)) return null;
+            // Buscar el primer jugador cuyo profileId sea distinto al propio
+            const rival = matchData.players.find(p => p.profileId !== myProfileId);
+            return rival ? rival.profileId : null;
+        }
+
+        // Modificar el socket para pasar el profileId del rival en la recarga
+        function create_socket(handler_name) {
+            const socket_url = `wss://socket.aoe2companion.com/listen?handler=${handler_name}&profile_ids=${player_id}`;
+            let socket = new WebSocket(socket_url);
+
+            socket.onopen = () => {
+                console.log(`✅ Connected to ${handler_name}`);
+            };
+
+            socket.onmessage = async (event) => {
+                console.log(`📩 [${handler_name}] Message received:`, event.data);
+                let msg;
+                try {
+                    msg = JSON.parse(event.data);
+                } catch (e) {
+                    console.warn('Could not parse message:', event.data);
+                    return;
+                }
+                // Soportar array y objeto
+                let matchData = Array.isArray(msg) && msg.length > 0 ? msg[0].data : msg.data;
+                if (!matchData || !matchData.matchId || analyzedMatches.has(matchData.matchId) || matchData.leaderboardId !== 'rm_1v1') {
+                    console.log('Skipping analysis for matchId:', matchData ? matchData.matchId : undefined);
+                    return;
+                }
+                analyzedMatches.add(matchData.matchId);
+
+                // Extraer el profileId del rival
+                const rivalProfileId = getRivalProfileId(matchData, player_id);
+                if (!rivalProfileId) {
+                    console.warn('No se pudo extraer el profileId del rival');
+                    return;
+                }
+                // Pasar el profileId del rival como parámetro en la recarga
+                const newUrl = `${window.location.pathname}?matchId=${matchData.matchId}&rivalProfileId=${rivalProfileId}&t=${Date.now()}`;
+                window.location.replace(newUrl);
+            };
+
+            socket.onclose = (event) => {
+                console.warn(`❌ Connection closed in ${handler_name}, retrying in 3s...`, event.code, event.reason);
+                setTimeout(() => {
+                    socket = create_socket(handler_name);
+                }, 3000);
+            };
+
+            socket.onerror = (error) => {
+                console.error(`⚠️ WebSocket error ${handler_name}`, error);
+                socket.close();
+            };
+
+            return socket;
+        }
 
         // Track analyzed matchIds
         const analyzedMatches = new Set();
