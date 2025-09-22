@@ -256,7 +256,12 @@
         }
 
         // Track analyzed match_ids
-        const analyzed_match_ids = new Set();
+        // Usar el matchId del overlay para evitar reanalizar el mismo partido
+        let analyzed_match_ids = new Set();
+        const current_match_id = {{ isset($stats['match_id']) ? $stats['match_id'] : 'null' }};
+        if (current_match_id) {
+            analyzed_match_ids.add(current_match_id);
+        }
 
         // Remove overlay on initial load (blank state)
         document.addEventListener('DOMContentLoaded', () => {
