@@ -298,7 +298,7 @@
                 const ls_key = `aoe2_analysis_${match_data.matchId}`;
                 const last_analysis = localStorage.getItem(ls_key);
                 const now = Date.now();
-                cons minutes = 2;
+                const minutes = 2;
                 if (last_analysis && now - parseInt(last_analysis) < minutes * 60 * 1000) {
                     // console.log(`⏳ Análisis para matchId ${match_data.matchId} ya realizado recientemente.`);
                     return;
