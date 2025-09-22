@@ -28,7 +28,7 @@
         <div style="display:grid; grid-template-columns: repeat(3,1fr); gap:10px; text-align:center; margin-bottom:10px;">
             <div>
                 <div style="font-size:11px; color:#aaa;">PARTIDAS</div>
-                <div style="font-size:16px; font-weight:700;">{{ $stats['total'] }}</div>
+                <div style="font-size:16px; font-weight:700;">{{ $stats['analyzed'] }}</div>
             </div>
             <div>
                 <div style="font-size:11px; color:#aaa;">VICTORIAS</div>
@@ -242,8 +242,8 @@
             }
         });
 
-        // Get player_id from backend
-        const player_id = {{ $stats['player_id'] ?? 8621659 }};
+        // Usar siempre el player_id enviado desde backend
+        const player_id = {{ $stats['player_id']}};
         console.log('Using player_id:', player_id);
 
         // Extraer el profile_id del rival desde los datos del match (ws.json)

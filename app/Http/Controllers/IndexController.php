@@ -11,32 +11,6 @@ use Illuminate\Support\Str;
 
 class IndexController extends Controller
 {
-    // === Public Endpoints ===
-
-    /**
-     * Endpoint para analizar un match específico por matchId
-     */
-    public function analyze(Request $request, $player_id = null): \Illuminate\Http\JsonResponse
-    {
-        $match_id = $request->query('matchId');
-        if (!$match_id) {
-            return response()->json(['error' => 'matchId requerido'], 400);
-        }
-        $data = [
-            'player_id' => $player_id,
-            'leaderboard' => $request->input('leaderboard', 'rm_1v1'),
-            'pages' => 1,
-            'per_page' => 1,
-        ];
-        $matches = $this->fetch_matches($player_id, $data['leaderboard'], 1, 1);
-        $match = collect($matches)->firstWhere('match_id', $match_id);
-        if (!$match) {
-            return response()->json(['error' => 'Match no encontrado'], 404);
-        }
-        $stats = $this->analyze_matches([$match], $player_id, null, null);
-        return response()->json($stats);
-    }
-
     /**
      * Endpoint principal para overlay
      */
@@ -44,13 +18,13 @@ class IndexController extends Controller
     {
         $match_id = $request->query('matchId') ?? null;
         $rival_profile_id = $request->query('rivalProfileId');
-        if ($match_id === null) {
+        if ($match_id === null || $rival_profile_id === null) {
             $stats = ['total' => 0, 'player_id' => $player_id];
             return view('partials.aoe2_overlay', ['stats' => $stats]);
         }
         $ongoing = $request->input('ongoing', false);
-        // Si se pasa el rivalProfileId, se analiza al rival
-        $analyze_id = $rival_profile_id ?? $player_id ?? 8621659;
+        // El análisis se hace con rival si existe, pero player_id en respuesta siempre es el principal
+        $analyze_id = $rival_profile_id;
         $request->merge([
             'player_id' => $analyze_id,
             'played_civilization' => $request->input('played_civilization'),
@@ -63,6 +37,7 @@ class IndexController extends Controller
         ]);
         $data = $request->all();
         $stats = $this->get_player_stats($data);
+        $stats['player_id'] = $player_id; // SIEMPRE el principal
         return view('partials.aoe2_overlay', ['stats' => $stats]);
     }
 
@@ -87,11 +62,13 @@ class IndexController extends Controller
                 'total' => 0
             ];
         }
-        if ($data_main_player['ongoing']) {
-            $matches = array_filter($matches, function ($m) {
-                return $m['finished'] !== null;
-            });
-        }
+
+        /**
+         * Se deben descartar los matches cuyo valor en finished sea null
+         */
+        $matches = array_filter($matches, function ($match) {
+            return $match['finished'] !== null;
+        });
 
         $stats = $this->analyze_matches($matches, $player_id, $played_civ_num, $opponent_civ_num);
         $stats['total_wins'] = collect($matches)->where('won', true)->count();
@@ -337,12 +314,6 @@ class IndexController extends Controller
                 $data = $analysis_request->json();
                 Log::info('analyze_matches: análisis obtenido', ['match_id' => $match_id]);
             }
-            // ...existing code...
-            // (No se modifica la lógica interna, solo snake_case y delegación de utilidades)
-            // ...
-            // (El resto del método se mantiene igual, solo snake_case y delegación de utilidades)
-            // ...
-            // (No se repite aquí para brevedad)
         }
         $avg = function ($arr) {
             return empty($arr) ? null : round(array_sum($arr) / count($arr), 2);
