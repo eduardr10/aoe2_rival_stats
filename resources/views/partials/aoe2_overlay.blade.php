@@ -241,73 +241,22 @@
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
         });
+
         // Get player_id from backend
         const player_id = {{ $stats['player_id'] ?? 8621659 }};
         console.log('Using player_id:', player_id);
 
-        // Extraer el profileId del rival desde los datos del match (ws.json)
-        // Suponiendo que el match data se obtiene vía WebSocket y está en matchData.players
-        function getRivalProfileId(matchData, myProfileId) {
-            if (!matchData || !Array.isArray(matchData.players)) return null;
-            // Buscar el primer jugador cuyo profileId sea distinto al propio
-            const rival = matchData.players.find(p => p.profileId !== myProfileId);
+        // Extraer el profile_id del rival desde los datos del match (ws.json)
+        // Suponiendo que el match_data se obtiene vía WebSocket y está en match_data.players
+        function get_rival_profile_id(match_data, my_profile_id) {
+            if (!match_data || !Array.isArray(match_data.players)) return null;
+            // Buscar el primer jugador cuyo profile_id sea distinto al propio
+            const rival = match_data.players.find(p => p.profileId !== my_profile_id);
             return rival ? rival.profileId : null;
         }
 
-        // Modificar el socket para pasar el profileId del rival en la recarga
-        function create_socket(handler_name) {
-            const socket_url = `wss://socket.aoe2companion.com/listen?handler=${handler_name}&profile_ids=${player_id}`;
-            let socket = new WebSocket(socket_url);
-
-            socket.onopen = () => {
-                console.log(`✅ Connected to ${handler_name}`);
-            };
-
-            socket.onmessage = async (event) => {
-                console.log(`📩 [${handler_name}] Message received:`, event.data);
-                let msg;
-                try {
-                    msg = JSON.parse(event.data);
-                } catch (e) {
-                    console.warn('Could not parse message:', event.data);
-                    return;
-                }
-                // Soportar array y objeto
-                let matchData = Array.isArray(msg) && msg.length > 0 ? msg[0].data : msg.data;
-                if (!matchData || !matchData.matchId || analyzedMatches.has(matchData.matchId) || matchData.leaderboardId !== 'rm_1v1') {
-                    console.log('Skipping analysis for matchId:', matchData ? matchData.matchId : undefined);
-                    return;
-                }
-                analyzedMatches.add(matchData.matchId);
-
-                // Extraer el profileId del rival
-                const rivalProfileId = getRivalProfileId(matchData, player_id);
-                if (!rivalProfileId) {
-                    console.warn('No se pudo extraer el profileId del rival');
-                    return;
-                }
-                // Pasar el profileId del rival como parámetro en la recarga
-                const newUrl = `${window.location.pathname}?matchId=${matchData.matchId}&rivalProfileId=${rivalProfileId}&t=${Date.now()}`;
-                window.location.replace(newUrl);
-            };
-
-            socket.onclose = (event) => {
-                console.warn(`❌ Connection closed in ${handler_name}, retrying in 3s...`, event.code, event.reason);
-                setTimeout(() => {
-                    socket = create_socket(handler_name);
-                }, 3000);
-            };
-
-            socket.onerror = (error) => {
-                console.error(`⚠️ WebSocket error ${handler_name}`, error);
-                socket.close();
-            };
-
-            return socket;
-        }
-
-        // Track analyzed matchIds
-        const analyzedMatches = new Set();
+        // Track analyzed match_ids
+        const analyzed_match_ids = new Set();
 
         // Remove overlay on initial load (blank state)
         document.addEventListener('DOMContentLoaded', () => {
@@ -315,7 +264,7 @@
             if (overlay) overlay.remove();
         });
 
-        // Create and manage WebSocket
+        // Crear y manejar WebSocket (única función)
         function create_socket(handler_name) {
             const socket_url = `wss://socket.aoe2companion.com/listen?handler=${handler_name}&profile_ids=${player_id}`;
             let socket = new WebSocket(socket_url);
@@ -334,14 +283,22 @@
                     return;
                 }
                 // Soportar array y objeto
-                let matchData = Array.isArray(msg) && msg.length > 0 ? msg[0].data : msg.data;
-                if (!matchData || !matchData.matchId || analyzedMatches.has(matchData.matchId) || matchData.leaderboardId !== 'rm_1v1') {
-                    console.log('Skipping analysis for matchId:', matchData ? matchData.matchId : undefined);
+                let match_data = Array.isArray(msg) && msg.length > 0 ? msg[0].data : msg.data;
+                if (!match_data || !match_data.matchId || analyzed_match_ids.has(match_data.matchId) || match_data.leaderboardId !== 'rm_1v1') {
+                    console.log('Skipping analysis for match_id:', match_data ? match_data.matchId : undefined);
                     return;
                 }
-                analyzedMatches.add(matchData.matchId);
-                const newUrl = `${window.location.pathname}?matchId=${matchData.matchId}&t=${Date.now()}`;
-                window.location.replace(newUrl);
+                analyzed_match_ids.add(match_data.matchId);
+
+                // Extraer el profile_id del rival
+                const rival_profile_id = get_rival_profile_id(match_data, player_id);
+                if (!rival_profile_id) {
+                    console.warn('No se pudo extraer el profile_id del rival');
+                    return;
+                }
+                // Pasar el profile_id del rival como parámetro en la recarga
+                const new_url = `${window.location.pathname}?matchId=${match_data.matchId}&rivalProfileId=${rival_profile_id}&t=${Date.now()}`;
+                window.location.replace(new_url);
             };
 
             socket.onclose = (event) => {
