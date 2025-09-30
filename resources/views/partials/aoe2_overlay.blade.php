@@ -1,4 +1,10 @@
 {{-- resources/views/partials/aoe2_overlay.blade.php --}}
+{{-- BOTÓN DE AUTOANÁLISIS --}}
+<div style="text-align:right; margin-bottom:10px;">
+    <button id="btn-autoanalyze"
+        style="background:#1976d2;color:#fff;border:none;padding:7px 18px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;box-shadow:0 2px 8px rgba(25,118,210,0.12);transition:background 0.2s;">Autoanalizar
+        mi perfil</button>
+</div>
 @if (isset($stats['error']) || $stats['total'] == 0)
     <div style="display: none;"></div>
 @else
@@ -229,6 +235,18 @@
     <div>
     </div>
     <script>
+        // Botón de autoanálisis: recarga la página con matchId=self y sin rivalProfileId
+        document.addEventListener('DOMContentLoaded', () => {
+            const btn = document.getElementById('btn-autoanalyze');
+            if (btn) {
+                btn.addEventListener('click', function () {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('matchId', 'self');
+                    url.searchParams.delete('rivalProfileId');
+                    window.location.href = url.pathname + '?' + url.searchParams.toString();
+                });
+            }
+        });
         document.addEventListener('DOMContentLoaded', () => {
             const url = new URL(window.location.href);
 

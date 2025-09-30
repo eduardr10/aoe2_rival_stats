@@ -19,14 +19,25 @@ class IndexController extends Controller
         if (!$matchId) {
             return response()->json(['error' => 'matchId requerido'], 400);
         }
-        // Usar los métodos existentes para obtener el análisis
+        // Si el matchId es 'self', hacer análisis general del jugador
+        if ($matchId === 'self') {
+            $data = [
+                'player_id' => $player_id,
+                'leaderboard' => $request->input('leaderboard', 'rm_1v1'),
+                'pages' => 1,
+                'per_page' => 10,
+                'ongoing' => false,
+            ];
+            $stats = $this->getPlayerStats($data);
+            return response()->json($stats);
+        }
+        // Usar los métodos existentes para obtener el análisis de un match específico
         $data = [
             'player_id' => $player_id,
             'leaderboard' => $request->input('leaderboard', 'rm_1v1'),
             'pages' => 1,
             'per_page' => 1,
         ];
-        // Buscar el match específico
         $matches = $this->fetchMatches($player_id, $data['leaderboard'], 1, 1);
         $match = collect($matches)->firstWhere('match_id', $matchId);
         if (!$match) {
@@ -39,6 +50,23 @@ class IndexController extends Controller
     {
         $match_id = $request->query('matchId') ?? null;
         $rival_profile_id = $request->query('rivalProfileId');
+        // Si matchId es 'self', forzar autoanálisis
+        if ($match_id === 'self') {
+            $request->merge([
+                'player_id' => $player_id,
+                'played_civilization' => $request->input('played_civilization'),
+                'opponent_civ' => $request->input('opponent_civ'),
+                'leaderboard' => $request->input('leaderboard', 'rm_1v1'),
+                'pages' => $request->input('pages', 1),
+                'ongoing' => $request->input('ongoing', false),
+                'per_page' => $request->input('per_page', 10),
+                'match_id' => 'self',
+            ]);
+            $data = $request->all();
+            $stats = $this->getPlayerStats($data);
+            $stats['player_id'] = $player_id;
+            return view('partials.aoe2_overlay', ['stats' => $stats]);
+        }
         if ($match_id === null || $rival_profile_id === null) {
             $stats = ['total' => 0, 'player_id' => $player_id];
             return view('partials.aoe2_overlay', ['stats' => $stats]);
@@ -242,6 +270,12 @@ class IndexController extends Controller
             Log::error('fetchMatches: matches no es array', ['matches' => $matches]);
             $matches = [];
         }
+        // Loguear el número de partidas obtenidas
+        Log::info('fetchMatches: número de partidas obtenidas', [
+            'player_id' => $playerId,
+            'leaderboard' => $leaderboard,
+            'total_matches' => is_array($matches) ? count($matches) : 0
+        ]);
         return $matches;
     }
 
