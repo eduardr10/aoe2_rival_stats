@@ -48,6 +48,8 @@ class IndexController extends Controller
     }
     public function __invoke(Request $request, $player_id)
     {
+        set_time_limit(120);
+
         $match_id = $request->query('matchId') ?? null;
         $rival_profile_id = $request->query('rivalProfileId');
         // Si matchId es 'self', forzar autoanálisis
